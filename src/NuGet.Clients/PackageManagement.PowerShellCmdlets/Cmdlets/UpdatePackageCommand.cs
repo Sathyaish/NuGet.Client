@@ -164,7 +164,6 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
             {
                 await PreviewAndExecuteUpdateActionsforSinglePackage();
 
-
                 if (!_isPackageInstalled)
                 {
                     Log(MessageLevel.Error, Resources.Cmdlet_PackageNotInstalledInAnyProject, Id);
@@ -212,10 +211,9 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                     EnabledSourceRepositories,
                     Token);
             }
-            _isPackageInstalled = IsPackageInstalled(Id, ProjectName).Result;
+            _isPackageInstalled = await IsPackageInstalled(Id, ProjectName);
             await ExecuteActions(actions);
         }
-
 
         private async Task<bool> IsPackageInstalled(string packageId, string projectName)
         {
@@ -231,26 +229,26 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         }
 
         /// <summary>
-        /// Execute the project actions 
+        /// Execute the project actions
         /// </summary>
         /// <param name="actions"></param>
         /// <returns></returns>
         private async Task ExecuteActions(IEnumerable<NuGetProjectAction> actions)
         {
-			if (!ShouldContinueDueToDotnetDeprecation(actions, WhatIf.IsPresent))
-			{
-				return;
-			}
+            if (!ShouldContinueDueToDotnetDeprecation(actions, WhatIf.IsPresent))
+            {
+                return;
+            }
 
-			if (WhatIf.IsPresent)
-			{
-				// For -WhatIf, only preview the actions
-				PreviewNuGetPackageActions(actions);
-			}
-			else
-			{
-			    // Execute project actions by Package Manager
-			    await PackageManager.ExecuteNuGetProjectActionsAsync(Projects, actions, this, Token);
+            if (WhatIf.IsPresent)
+            {
+                // For -WhatIf, only preview the actions
+                PreviewNuGetPackageActions(actions);
+            }
+            else
+            {
+                // Execute project actions by Package Manager
+                await PackageManager.ExecuteNuGetProjectActionsAsync(Projects, actions, this, Token);
             }
         }
 
