@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
+using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
 using NuGet.Packaging.Core;
@@ -163,6 +164,7 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
             {
                 await PreviewAndExecuteUpdateActionsforSinglePackage();
 
+
                 if (!_isPackageInstalled)
                 {
                     Log(MessageLevel.Error, Resources.Cmdlet_PackageNotInstalledInAnyProject, Id);
@@ -210,11 +212,22 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                     EnabledSourceRepositories,
                     Token);
             }
-
-            // set _installed to true, if package to update is installed.
-            _isPackageInstalled = actions.Any();
-
+            _isPackageInstalled = IsPackageInstalled(Id, ProjectName).Result;
             await ExecuteActions(actions);
+        }
+
+
+        private async Task<bool> IsPackageInstalled(string packageId, string projectName)
+        {
+            foreach (var project in Projects.Where(project => project.GetMetadata<string>("UniqueName") == projectName))
+            {
+                var installedPackages = await project.GetInstalledPackagesAsync(CancellationToken.None);
+                if (installedPackages.Any(package => package.PackageIdentity.Id == packageId))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
