@@ -211,7 +211,6 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                     EnabledSourceRepositories,
                     Token);
             }
-
             await ExecuteActions(actions);
             return isInstalled;
         }
