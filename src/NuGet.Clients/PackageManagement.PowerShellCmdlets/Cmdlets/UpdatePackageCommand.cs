@@ -226,7 +226,8 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
             foreach (var project in Projects)
             {
                 var installedPackages = await project.GetInstalledPackagesAsync(CancellationToken.None);
-                if (installedPackages.Any(package => package.PackageIdentity.Id == packageId))
+                if (installedPackages.Select(installedPackage => installedPackage.PackageIdentity.Id)
+                                     .Any(installedPackageId => installedPackageId.Equals(packageId, StringComparison.OrdinalIgnoreCase)))
                 {
                     return true;
                 }
