@@ -230,6 +230,10 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                 {
                     return true;
                 }
+                //if (installedPackages.Any(package => StringComparer.Ordinal.Equals(package.PackageIdentity.Id, packageId)))
+                //{
+                //    return true;
+                //}
             }
             return false;
         }
