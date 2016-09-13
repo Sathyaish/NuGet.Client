@@ -26,7 +26,6 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         private bool _projectSpecified;
         private bool _versionSpecifiedPrerelease;
         private bool _allowPrerelease;
-        private bool _isPackageInstalled;
         private NuGetVersion _nugetVersion;
 
         [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, Position = 0, ParameterSetName = "Project")]
@@ -162,9 +161,7 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         {
             try
             {
-                await PreviewAndExecuteUpdateActionsforSinglePackage();
-
-                if (!_isPackageInstalled)
+                if (!await PreviewAndExecuteUpdateActionsforSinglePackage())
                 {
                     Log(MessageLevel.Error, Resources.Cmdlet_PackageNotInstalledInAnyProject, Id);
                 }
@@ -184,7 +181,7 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         /// </summary>
         /// <param name="project"></param>
         /// <returns></returns>
-        private async Task PreviewAndExecuteUpdateActionsforSinglePackage()
+        private async Task<bool> PreviewAndExecuteUpdateActionsforSinglePackage()
         {
             var actions = Enumerable.Empty<NuGetProjectAction>();
 
@@ -211,13 +208,14 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                     EnabledSourceRepositories,
                     Token);
             }
-            _isPackageInstalled = await IsPackageInstalled(Id, ProjectName);
+
             await ExecuteActions(actions);
+            return await IsPackageInstalled(Id, ProjectName);
         }
 
         private async Task<bool> IsPackageInstalled(string packageId, string projectName)
         {
-            foreach (var project in Projects.Where(project => project.GetMetadata<string>("UniqueName") == projectName))
+            foreach (var project in Projects)
             {
                 var installedPackages = await project.GetInstalledPackagesAsync(CancellationToken.None);
                 if (installedPackages.Any(package => package.PackageIdentity.Id == packageId))
