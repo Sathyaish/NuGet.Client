@@ -179,11 +179,14 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         /// <summary>
         /// Preview update actions for single package
         /// </summary>
-        /// <param name="project"></param>
         /// <returns></returns>
         private async Task<bool> PreviewAndExecuteUpdateActionsforSinglePackage()
         {
             var actions = Enumerable.Empty<NuGetProjectAction>();
+
+            // Check if the package is installed or not.
+            // Used to throw an error message indicating that the package was not installed to begin with.
+            var isInstalled = await IsPackageInstalled(Id);
 
             // If -Version switch is specified
             if (!string.IsNullOrEmpty(Version))
@@ -210,10 +213,15 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
             }
 
             await ExecuteActions(actions);
-            return await IsPackageInstalled(Id, ProjectName);
+            return isInstalled;
         }
 
-        private async Task<bool> IsPackageInstalled(string packageId, string projectName)
+        /// <summary>
+        /// Method checks if the package to be updated is installed in any package or not.
+        /// </summary>
+        /// <param name="packageId">Id of the package to be updated/checked</param>
+        /// <returns><code>bool</code> indicating wether the package is installed on any package or not</returns>
+        private async Task<bool> IsPackageInstalled(string packageId)
         {
             foreach (var project in Projects)
             {
