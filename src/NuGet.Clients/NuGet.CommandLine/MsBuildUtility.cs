@@ -42,7 +42,7 @@ namespace NuGet.CommandLine
         public static int Build(string msbuildDirectory,
                                     string args)
         {
-            string msbuildPath = Path.Combine(msbuildDirectory, "msbuild.exe");
+            string msbuildPath = GetMSbuild(msbuildDirectory);
 
             if (!File.Exists(msbuildPath))
             {
@@ -78,7 +78,7 @@ namespace NuGet.CommandLine
             string[] projectPaths,
             int timeOut)
         {
-            string msbuildPath = Path.Combine(msbuildDirectory, "msbuild.exe");
+            string msbuildPath = GetMSbuild(msbuildDirectory);
 
             if (!File.Exists(msbuildPath))
             {
@@ -571,6 +571,26 @@ namespace NuGet.CommandLine
                     }
                 }
             }
+        }
+
+        private static string GetMSbuild(string msbuildDirectory)
+        {
+            if (RuntimeEnvironmentHelper.IsMono)
+            {
+                if (File.Exists(CommandLineConstants.MsbuildPathOnMac))
+                {
+                    return CommandLineConstants.MsbuildPathOnMac;
+                }
+                else
+                {
+                    return Path.Combine(msbuildDirectory, "xbuild.exe");
+                }
+            }
+            else
+            {
+                return Path.Combine(msbuildDirectory, "msbuild.exe");
+            }
+
         }
     }
 }
