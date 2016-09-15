@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Build.Evaluation;
 using NuGet.Commands;
 using NuGet.Common;
@@ -571,6 +572,28 @@ namespace NuGet.CommandLine
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Escapes a string so that it can be safely passed as a command line argument when starting a msbuild process
+        /// </summary>
+        public static string Escape(string argument)
+        {
+            if (argument == string.Empty)
+            {
+                return "\"\"";
+            }
+
+            var escaped = Regex.Replace(
+                argument,
+                @"(\\*)""", @"$1\$0");
+
+            escaped = Regex.Replace(
+                escaped,
+                @"^(.*\s.*?)(\\*)$", @"""$1$2$2""",
+                RegexOptions.Singleline);
+
+            return escaped;
         }
     }
 }
