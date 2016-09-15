@@ -112,14 +112,43 @@ namespace NuGet.CommandLine
                 argumentBuilder.Append(" /p:ResultsFile=");
                 AppendQuoted(argumentBuilder, resultsPath);
 
-                argumentBuilder.Append(" /p:NuGet_ProjectReferenceToResolve=\"");
-                for (var i = 0; i < projectPaths.Length; i++)
+                bool isMono = RuntimeEnvironmentHelper.IsMono && !RuntimeEnvironmentHelper.IsWindows;
+
+                // /p: foo = "bar;baz" doesn't work on bash.
+                // /p: foo = /"bar/;baz/" works.
+                // Need to escape quotes and semicolon on bash.
+                if (isMono)
                 {
-                    argumentBuilder.Append(projectPaths[i])
-                        .Append(";");
+                    argumentBuilder.Append(" /p:NuGet_ProjectReferenceToResolve=\\\"");
+                }
+                else
+                {
+                    argumentBuilder.Append(" /p:NuGet_ProjectReferenceToResolve=\"");
                 }
 
-                argumentBuilder.Append("\" ");
+                for (var i = 0; i < projectPaths.Length; i++)
+                {
+                    if (isMono)
+                    {
+                        argumentBuilder.Append(projectPaths[i])
+                            .Append("\\;");
+                    }
+                    else
+                    {
+                        argumentBuilder.Append(projectPaths[i])
+                            .Append(";");
+                    }
+                }
+
+                if (isMono)
+                {
+                    argumentBuilder.Append("\" ");
+                }
+                else
+                {
+                    argumentBuilder.Append("\\\" ");
+                }
+
                 AppendQuoted(argumentBuilder, entryPointTargetPath);
 
                 var processStartInfo = new ProcessStartInfo
@@ -577,9 +606,11 @@ namespace NuGet.CommandLine
         {
             if (RuntimeEnvironmentHelper.IsMono)
             {
-                if (File.Exists(CommandLineConstants.MsbuildPathOnMac))
+                // Return Msbuild 14.1 on Mac.
+                var msbuild = Path.Combine(CommandLineConstants.MsbuildPathOnMac, "msbuild.exe");
+                if (File.Exists(msbuild))
                 {
-                    return CommandLineConstants.MsbuildPathOnMac;
+                    return msbuild;
                 }
                 else
                 {
