@@ -142,11 +142,11 @@ namespace NuGet.CommandLine
 
                 if (isMono)
                 {
-                    argumentBuilder.Append("\" ");
+                    argumentBuilder.Append("\\\" ");
                 }
                 else
                 {
-                    argumentBuilder.Append("\\\" ");
+                    argumentBuilder.Append("\" ");
                 }
 
                 AppendQuoted(argumentBuilder, entryPointTargetPath);
