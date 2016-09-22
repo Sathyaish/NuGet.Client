@@ -2017,6 +2017,7 @@ namespace NuGet.PackageManagement
 
                 // batch events argument object
                 PackageProjectEventArgs packageProjectEventArgs = null;
+                var isVsBatchStartEventRaised = false;
 
                 try
                 {
@@ -2051,10 +2052,8 @@ namespace NuGet.PackageManagement
 
                     if (msbuildProject != null)
                     {
-                        // Leaving it as comment for future reference
-                        // Don't use batch API for whole install or uninstall which also includes adding/ removing references
-                        // from project, since it could then create problems while adding binding redirects.
-                        // msbuildProject.MSBuildNuGetProjectSystem.BeginProcessing();
+                        msbuildProject.MSBuildNuGetProjectSystem.BeginProcessing();
+                        isVsBatchStartEventRaised = true;
 
                         // raise Nuget batch start event
                         var batchId = Guid.NewGuid().ToString();
@@ -2117,12 +2116,6 @@ namespace NuGet.PackageManagement
                                 nuGetProject.GetMetadata<string>(NuGetProjectMetadataKeys.Name));
                         }
                     }
-
-                    // Post process
-                    await nuGetProject.PostProcessAsync(nuGetProjectContext, token);
-
-                    // Open readme file
-                    await OpenReadmeFile(nuGetProject, nuGetProjectContext, token);
                 }
                 catch (Exception ex)
                 {
@@ -2152,8 +2145,28 @@ namespace NuGet.PackageManagement
                             BatchEnd?.Invoke(this, packageProjectEventArgs);
                             PackageProjectEventsProvider.Instance.NotifyBatchEnd(packageProjectEventArgs);
                         }
-                    }
 
+                        if (isVsBatchStartEventRaised)
+                        {
+                            msbuildProject.MSBuildNuGetProjectSystem.EndProcessing();
+                        }
+                    }
+                }
+
+                if (exceptionInfo == null)
+                {
+                    try
+                    {
+                        // Post process
+                        await nuGetProject.PostProcessAsync(nuGetProjectContext, token);
+
+                        // Open readme file
+                        await OpenReadmeFile(nuGetProject, nuGetProjectContext, token);
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptionInfo = ExceptionDispatchInfo.Capture(ex);
+                    }
                 }
 
                 if (exceptionInfo != null)
