@@ -211,7 +211,6 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                     EnabledSourceRepositories,
                     Token);
             }
-            await ExecuteActions(actions);
             return isInstalled;
         }
 
@@ -226,15 +225,10 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
             {
                 var installedPackages = await project.GetInstalledPackagesAsync(CancellationToken.None);
                 if (installedPackages.Select(installedPackage => installedPackage.PackageIdentity.Id)
-                                     .Any(installedPackageId => installedPackageId.Equals(packageId,
-                                                                                          StringComparison.OrdinalIgnoreCase)))
+                                     .Any(installedPackageId => installedPackageId.Equals(packageId, StringComparison.OrdinalIgnoreCase)))
                 {
                     return true;
                 }
-                //if (installedPackages.Any(package => StringComparer.Ordinal.Equals(package.PackageIdentity.Id, packageId)))
-                //{
-                //    return true;
-                //}
             }
             return false;
         }
