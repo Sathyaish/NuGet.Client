@@ -43,14 +43,14 @@ $env:NuGetTestModeEnabled = "True"
 
 $msbuildPath = Join-Path $env:windir Microsoft.NET\Framework\v4.0.30319\msbuild
 $testExtensionNames = ( "GenerateTestPackages.exe", "API.Test.dll" )
-$testExtensionsRoot = Join-Path $nugetRoot "test\TestExtensions"
+$testExtensionsRoot = Join-Path $nugetRoot "artifacts"
 
 $testExtensions = @()
 
 if ((Test-Path $testExtensionsRoot) -eq $True)
 {
     $testExtensions  = [System.Collections.ArrayList]($testExtensionNames |
-                            %{ Join-Path $testExtensionsRoot ([System.IO.Path]::GetFileNameWithoutExtension($_) + "\bin\Debug\" + $_) })
+                            %{ Join-Path $testExtensionsRoot ([System.IO.Path]::GetFileNameWithoutExtension($_) + "\14.0\Debug\" + $_) })
 }
 else
 {
