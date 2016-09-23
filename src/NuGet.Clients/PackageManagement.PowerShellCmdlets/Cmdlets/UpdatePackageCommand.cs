@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
+using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
 using NuGet.Packaging.Core;
@@ -25,7 +26,6 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         private bool _projectSpecified;
         private bool _versionSpecifiedPrerelease;
         private bool _allowPrerelease;
-        private bool _isPackageInstalled;
         private NuGetVersion _nugetVersion;
 
         [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, Position = 0, ParameterSetName = "Project")]
@@ -161,9 +161,7 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         {
             try
             {
-                await PreviewAndExecuteUpdateActionsforSinglePackage();
-
-                if (!_isPackageInstalled)
+                if (!await PreviewAndExecuteUpdateActionsforSinglePackage())
                 {
                     Log(MessageLevel.Error, Resources.Cmdlet_PackageNotInstalledInAnyProject, Id);
                 }
@@ -181,11 +179,14 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         /// <summary>
         /// Preview update actions for single package
         /// </summary>
-        /// <param name="project"></param>
         /// <returns></returns>
-        private async Task PreviewAndExecuteUpdateActionsforSinglePackage()
+        private async Task<bool> PreviewAndExecuteUpdateActionsforSinglePackage()
         {
             var actions = Enumerable.Empty<NuGetProjectAction>();
+
+            // Check if the package is installed or not.
+            // Used to throw an error message indicating that the package was not installed to begin with.
+            var isInstalled = await IsPackageInstalled(Id);
 
             // If -Version switch is specified
             if (!string.IsNullOrEmpty(Version))
@@ -210,34 +211,49 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                     EnabledSourceRepositories,
                     Token);
             }
-
-            // set _installed to true, if package to update is installed.
-            _isPackageInstalled = actions.Any();
-
-            await ExecuteActions(actions);
+            return isInstalled;
         }
 
         /// <summary>
-        /// Execute the project actions 
+        /// Method checks if the package to be updated is installed in any package or not.
+        /// </summary>
+        /// <param name="packageId">Id of the package to be updated/checked</param>
+        /// <returns><code>bool</code> indicating wether the package is installed on any package or not</returns>
+        private async Task<bool> IsPackageInstalled(string packageId)
+        {
+            foreach (var project in Projects)
+            {
+                var installedPackages = await project.GetInstalledPackagesAsync(CancellationToken.None);
+                if (installedPackages.Select(installedPackage => installedPackage.PackageIdentity.Id)
+                                     .Any(installedPackageId => installedPackageId.Equals(packageId, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Execute the project actions
         /// </summary>
         /// <param name="actions"></param>
         /// <returns></returns>
         private async Task ExecuteActions(IEnumerable<NuGetProjectAction> actions)
         {
-			if (!ShouldContinueDueToDotnetDeprecation(actions, WhatIf.IsPresent))
-			{
-				return;
-			}
+            if (!ShouldContinueDueToDotnetDeprecation(actions, WhatIf.IsPresent))
+            {
+                return;
+            }
 
-			if (WhatIf.IsPresent)
-			{
-				// For -WhatIf, only preview the actions
-				PreviewNuGetPackageActions(actions);
-			}
-			else
-			{
-			    // Execute project actions by Package Manager
-			    await PackageManager.ExecuteNuGetProjectActionsAsync(Projects, actions, this, Token);
+            if (WhatIf.IsPresent)
+            {
+                // For -WhatIf, only preview the actions
+                PreviewNuGetPackageActions(actions);
+            }
+            else
+            {
+                // Execute project actions by Package Manager
+                await PackageManager.ExecuteNuGetProjectActionsAsync(Projects, actions, this, Token);
             }
         }
 
